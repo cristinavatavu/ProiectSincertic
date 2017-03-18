@@ -9,13 +9,34 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
+#define MENU_MAIN 0
+#define MENU_TEMP 1
+#define MENU_TIME 2
+#define MENU_PARAM 3
 
-/*
-#define LCD_LEFT_COL 0
-#define LCD_RIGHT_COL 8
+//submeniuri
+#define MENU_KD 30
+#define MENU_KI 31
+#define MENU_KP 32
 
-#define LCD_FIRST_ROW 0
-#define LCD_SECOND_ROW 1*/
+#define MENU_TINC 20
+#define MENU_TMEN 21
+#define MENU_TDEC 22
+
+
+#define BUTTON_DOWN 1
+#define BUTTON_UP 2
+#define BUTTON_OK 3
+#define BUTTON_BACK 4
+#define NO_BUTTON_PRESSED 0
+
+#define ADDR_TSET 0
+#define ADDR_TINC 1
+#define ADDR_TMEN 2
+#define ADDR_REC 3
+#define ADDR_KP 4
+#define ADDR_KD 5
+#define ADDR_KI 6
 
 
 
