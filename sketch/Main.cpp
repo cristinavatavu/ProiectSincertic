@@ -10,13 +10,13 @@
 #include "Menu.h"
 #include "Display.h"
 #include "EEPROMfct.h"
-
+#include "PID_v1.h"
 
 
 
 //GLOBAL VARIABLES
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-int button = A0;
+int button = BUTTON_READ_PIN;
 int downCounter = 0;
 int upCounter = 0;
 int backCounter = 0;
@@ -25,12 +25,17 @@ int downFactor = 1;
 int upResetDebouncing = 0;
 int downResetDebouncing= 0;
 int backResetDebouncing = 0;
+float current_temp = 0;
+double Setpoint, Input, Output;
+float tempAvg = 0;
+int tempAvgIndex =0;
 
 //int current_menu = MENU_MAIN;
 int debounce = 0;
 int pressedButton = NO_BUTTON_PRESSED;
 Parameters_t Parameters_st;
 
+PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
 
 void ManageDebouncing(int, int);  //schimba factorul cu care scad sau cresc parametrii in functie de tempul cat butonul a fost apasat
 								  //in cazul butonului de back timpul de apasare schimba fucntia
@@ -45,12 +50,15 @@ void ExecuteFactoryReset();
 void setup() {
 	
 	lcd.begin(16, 2); //nr columns, nr rows
-	pinMode(A0, INPUT_PULLUP);
+	pinMode(BUTTON_READ_PIN, INPUT_PULLUP);
+	pinMode(TEMP_SENSOR_READ_PIN, INPUT);
 	pinMode(BULB_PIN_PWM, OUTPUT);
 	
-	EEPROM_readAnything(0, Parameters_st);
+	EEPROM_readAnything(0, Parameters_st); //parametrii de functionare se incarca din EEPROM
+	myPID.SetTunings(Parameters_st.kp, Parameters_st.ki, Parameters_st.kd);
+	Setpoint = Parameters_st.TSet;
 	
-	if((Parameters_st.status != 0x05) && (Parameters_st.status != 0x00))
+	if((Parameters_st.status != 0x05) && (Parameters_st.status != 0x00)) //verifica statusul procesului anterior
 	{
 		lcd.setCursor(0,0);
 		lcd.print("Proces anterior");
@@ -58,6 +66,7 @@ void setup() {
 		lcd.print("nefinalizat!");
 		delay(3000);
 	}
+	myPID.SetMode(AUTOMATIC);
 	DisplayMainMenu();
 	
 }
@@ -112,6 +121,7 @@ void loop() {
 		{
 			ManageDebouncing(BUTTON_BACK, BUTTON_PRESSED);	
 		}
+			delay(100);
 	}
 	else //button released
 	{
@@ -128,11 +138,33 @@ void loop() {
 		{
 			ManageDebouncing(BUTTON_BACK,BUTTON_RELEASED);
 		}
+			delay(100);
 	}
 	
-	delay(100);
+	
+	if(current_menu == MENU_RUNNING)  //citirile de la senzor si transmiterea de PWM se fac doar cand procesul e in rulare
+	{
+		float voltage = (float) analogRead(TEMP_SENSOR_READ_PIN) * (5000.0 / 1023.0); //voltajul in mV de la senzor
+		if(tempAvgIndex < 5) //face media a 5 masuratori
+		{
+			tempAvg += (float) voltage/10.0; //10mV = 1grC
+			tempAvgIndex ++;
+		}
+		else
+		{
+			tempAvgIndex = 0;
+			current_temp = (float)tempAvg/5.0;
+			tempAvg = 0;
+			DisplayRunningInfo();
+		}
+		//Input = current_temp;
+		//PWMGenerator(Output);
+		PWMGenerator(100);
+		delay(500);
 
+		
 
+	}
 }
 
 
@@ -267,4 +299,24 @@ void ExecuteFactoryReset()
 	lcd.print("Reset done!");
 	delay(3000);
 	DisplayMainMenu();
+}
+
+
+
+void PWMGenerator(int dutyCycle)
+{
+	int parameter;
+	float percent = (float)255/100; //parametrul maximm e 255 care inseamna 100 =>
+									//=>fiecare procent din vactorul de umplere reprezinta 2.55 in plus la parametru
+	
+	if(dutyCycle > 100)
+	{
+		parameter = 255;  //limiteaza la 100%
+	}
+	else
+	{
+		parameter = (int) (percent * dutyCycle); 
+	}
+	
+	analogWrite(BULB_PIN_PWM, parameter);
 }
