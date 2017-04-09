@@ -34,6 +34,10 @@
 #define FACTOR10_THRESH 30
 #define FACTOR100_THRESH 60
 
+#define BULB_PIN_PWM 10
+#define TEMP_SENSOR_READ_PIN A5
+#define BUTTON_READ_PIN A0
+
 typedef struct Parameters_t
 {
 	    byte status;  //0x00 -> Waiting
@@ -59,6 +63,8 @@ extern int downCounter;
 extern int backCounter;
 extern int upFactor;
 extern int downFactor;
+void PWMGenerator(int);
+extern float current_temp;
 
 #endif /* DEFINES_H_ */
 
