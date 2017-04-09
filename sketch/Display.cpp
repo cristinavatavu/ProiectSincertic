@@ -135,3 +135,26 @@ void DisplayParamMenu()
 	lcd.print("4.Back");
 	
 }
+
+void DisplayRunningInfo()
+{
+	lcd.clear();
+	//primul rand
+	//lcd.setCursor(0,0);  -- timpul ramas
+	lcd.setCursor(11,0);
+	lcd.print(Parameters_st.status); // --statusul (in ce stare e acum procesul)
+	//al 2-lea rand
+	lcd.setCursor(0,1); // -- temp setata
+	lcd.print(Parameters_st.TSet);
+	lcd.setCursor(3,1);
+	lcd.print((char)223); //printeaza semnul de grad
+	lcd.setCursor(4,1);
+	lcd.print("C");
+	lcd.setCursor(9,1); //  -- temp curenta
+	lcd.print(current_temp);
+	lcd.setCursor(14,1);
+	lcd.print((char)223); //printeaza semnul de grad
+	lcd.setCursor(15,1);
+	lcd.print("C");
+	
+}
