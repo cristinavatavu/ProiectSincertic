@@ -17,6 +17,7 @@
 #define MENU_TEMP 1
 #define MENU_TIME 2
 #define MENU_PARAM 3
+#define MENU_RUNNING 4
 
 //submeniuri
 #define MENU_KD 30
