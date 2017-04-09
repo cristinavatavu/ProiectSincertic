@@ -96,12 +96,10 @@ void MainMenu(int btn)
 				lcd.clear();
 				lcd.setCursor(7,0);
 				lcd.print(":)");
-				delay(3000);
-				lcd.clear();
-				lcd.setCursor(5,0);
-				lcd.print("RUNNING");
+				current_menu = MENU_RUNNING;
 				Parameters_st.status = 1;
 				EEPROM_writeAnything(ADDR_STATUS, Parameters_st.status);
+				delay(3000);
 			}
 				
 				
