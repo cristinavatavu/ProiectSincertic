@@ -18,6 +18,7 @@ void TimePrint(int);
 void DisplayMainMenu();
 void DisplayTimeMenu();
 void DisplayParamMenu();
+void DisplayRunningInfo();
 
 
 #endif /* DISPLAY_H_ */
