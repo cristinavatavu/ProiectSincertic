@@ -19,7 +19,7 @@
 
 
 //Global variables
-int current_menu = MENU_MAIN;
+int current_state = MENU_MAIN;
 //Parameters_t Parameters_st;
 
 
@@ -27,7 +27,7 @@ int current_menu = MENU_MAIN;
 //selecteaza ce e de facut in functie de meniul curent
 void MenuHandler(int btn)
 {
-	switch(current_menu)
+	switch(current_state)
 	{
 		case MENU_MAIN:
 		{
@@ -92,14 +92,10 @@ void MenuHandler(int btn)
 void MainMenu(int btn)
 {
 			if(btn == BUTTON_DOWN) //apasat butonul 1 - start
-			{
-				lcd.clear();
-				lcd.setCursor(7,0);
-				lcd.print(":)");
-				current_menu = MENU_RUNNING;
+			{		
+				current_state = STATE_RUNNING_INC;
 				Parameters_st.status = 1;
 				EEPROM_writeAnything(ADDR_STATUS, Parameters_st.status);
-				delay(3000);
 			}
 				
 				
@@ -111,7 +107,7 @@ void MainMenu(int btn)
 				lcd.print((char)223);
 				lcd.setCursor(4,0);
 				lcd.print('C');
-				current_menu = MENU_TEMP;
+				current_state = MENU_TEMP;
 			}
 				
 				
@@ -216,21 +212,21 @@ void TimeMenu(int btn)
 				if(btn == BUTTON_DOWN) //apasat butonul 1 - tInc
 				{
 					TimePrint(Parameters_st.tInc);
-					current_menu = MENU_TINC;
+					current_state = MENU_TINC;
 				}
 				
 				
 				else if(btn == BUTTON_UP) //apasat butonul 2 - tMen
 				{
 					TimePrint(Parameters_st.tMen);
-					current_menu = MENU_TMEN;
+					current_state = MENU_TMEN;
 				}
 				
 				
 				else if(btn == BUTTON_OK) // apasat butonul 3 - tRcr
 				{
-						TimePrint(Parameters_st.tRec);
-						current_menu = MENU_TDEC;
+						TimePrint(Parameters_st.tDec);
+						current_state = MENU_TDEC;
 				}
 				else if(btn == BUTTON_BACK) //apasat butonul 4 - back to main menu
 				{
@@ -248,20 +244,20 @@ void ParamMenu(int btn )
 				if(btn == BUTTON_DOWN) //apasat butonul 1 - kd
 				{
 					SimplePrint(Parameters_st.kd);
-					current_menu = MENU_KD;
+					current_state = MENU_KD;
 				}
 				
 				else if(btn == BUTTON_UP) //apasat butonul 2 - kp
 				{
 					SimplePrint(Parameters_st.kp);
-					current_menu = MENU_KP;
+					current_state = MENU_KP;
 				}
 				
 				
 				else if(btn == BUTTON_OK) // apasat butonul 3 - ki
 				{	
 					SimplePrint(Parameters_st.ki);
-					current_menu = MENU_KI;
+					current_state = MENU_KI;
 				}
 				else if(btn == BUTTON_BACK) //apasat butonul 4 - back to main menu
 				{
@@ -278,7 +274,7 @@ void ParamSubmenu(int btn)
 {
 	//pt salvare in EEPROM trebuie facut si un case in fct de current_menuu ca sa stii ce sa salvezi
 	
-	switch (current_menu)
+	switch (current_state)
 	{
 		case MENU_KI:
 		{
@@ -363,7 +359,7 @@ void ParamSubmenu(int btn)
 void TimeSubmenu(int btn)
 	//pt salvare in EEPROM trebuie facut si un case in fct de current_menuu ca sa stii ce sa salvezi
 {
-	switch(current_menu)
+	switch(current_state)
 	{
 		case MENU_TINC:
 		{
@@ -485,24 +481,24 @@ void TimeSubmenu(int btn)
 			{
 				if(downFactor == 1)
 				{
-					Parameters_st.tRec --;
-					if (Parameters_st.tRec < 0)
-						Parameters_st.tRec = 0;
-					TimePrint(Parameters_st.tRec);
+					Parameters_st.tDec --;
+					if (Parameters_st.tDec < 0)
+						Parameters_st.tDec = 0;
+					TimePrint(Parameters_st.tDec);
 				}
 				else if(downFactor == 10)
 				{
-					Parameters_st.tRec -= 60;
-					if (Parameters_st.tRec < 0)
-						Parameters_st.tRec = 0;
-					TimePrint(Parameters_st.tRec);
+					Parameters_st.tDec -= 60;
+					if (Parameters_st.tDec < 0)
+						Parameters_st.tDec = 0;
+					TimePrint(Parameters_st.tDec);
 				}
 				else if(downFactor == 100)
 				{
-					Parameters_st.tRec -= 300;
-					if (Parameters_st.tRec < 0)
-						Parameters_st.tRec = 0;
-					TimePrint(Parameters_st.tRec);
+					Parameters_st.tDec -= 300;
+					if (Parameters_st.tDec < 0)
+						Parameters_st.tDec = 0;
+					TimePrint(Parameters_st.tDec);
 				}
 					
 			}
@@ -510,29 +506,29 @@ void TimeSubmenu(int btn)
 			{
 					if(upFactor == 1)
 					{
-						Parameters_st.tRec ++;
-						TimePrint(Parameters_st.tRec);
+						Parameters_st.tDec ++;
+						TimePrint(Parameters_st.tDec);
 					}
 					else if(upFactor == 10)
 					{
-						Parameters_st.tRec += 60;
-						TimePrint(Parameters_st.tRec);
+						Parameters_st.tDec += 60;
+						TimePrint(Parameters_st.tDec);
 					}
 					else if(upFactor == 100)
 					{
-						Parameters_st.tRec += 300;
-						TimePrint(Parameters_st.tRec);
+						Parameters_st.tDec += 300;
+						TimePrint(Parameters_st.tDec);
 					}
 			}
 			else if(btn == BUTTON_OK) // apasat butonul 3 - ok
 			{
 				//Parameters_st.tRec = tRec;
-				EEPROM_writeAnything(ADDR_TREC, Parameters_st.tRec);
+				EEPROM_writeAnything(ADDR_TREC, Parameters_st.tDec);
 				DisplayTimeMenu();
 			}
 			else if(btn == BUTTON_BACK) //apasat butonul 4 - back
 			{
-				Parameters_st.tRec = DEFAULT_TREC;
+				Parameters_st.tDec = DEFAULT_TDEC;
 				DisplayTimeMenu();
 			}
 		}break;
