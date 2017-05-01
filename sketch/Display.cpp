@@ -80,7 +80,7 @@ void TimePrint(int sec)
 
 void DisplayMainMenu()
 {
-	current_menu = MENU_MAIN;
+	current_state = MENU_MAIN;
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("1.Go!");
@@ -102,7 +102,7 @@ void DisplayMainMenu()
 
 void DisplayTimeMenu()
 {
-	current_menu = MENU_TIME;
+	current_state = MENU_TIME;
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("1.t Inc");
@@ -120,7 +120,7 @@ void DisplayTimeMenu()
 
 void DisplayParamMenu()
 {
-	current_menu = MENU_PARAM;
+	current_state = MENU_PARAM;
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("1.kd");
@@ -136,13 +136,72 @@ void DisplayParamMenu()
 	
 }
 
+
+
+
 void DisplayRunningInfo()
 {
 	lcd.clear();
+	int min=0;
+	int sec= timeRemaining;
 	//primul rand
-	//lcd.setCursor(0,0);  -- timpul ramas
+	
+	lcd.setCursor(0,0);
+	switch(current_state)// --statusul (in ce stare e acum procesul)
+	{
+		case STATE_RUNNING_INC:
+		{
+			lcd.print("Inc"); 
+		}break;
+		
+		case STATE_RUNNING_MEN:
+		{
+			lcd.print("Men"); 
+		}break;
+		
+		case STATE_RUNNING_DEC:
+		{
+			lcd.print("Dec"); 
+		}break;
+	}
+	
+	//lcd.setCursor(9,0);  // timpul ramas
+	if(sec >= 60)
+	{
+		min = sec/60;
+		sec = sec % 60;
+	}
+	
+	if(min < 10)
+	{
+		lcd.setCursor(9,0);
+		lcd.print("0");
+		lcd.setCursor(10,0);
+		lcd.print(min);
+	}
+	else
+	{
+		lcd.setCursor(9,0);
+		lcd.print(min);
+	}
+	
 	lcd.setCursor(11,0);
-	lcd.print(Parameters_st.status); // --statusul (in ce stare e acum procesul)
+	lcd.print(":");
+	
+	if(sec < 10)
+	{
+		lcd.setCursor(12,0);
+		lcd.print("0");
+		lcd.setCursor(13,0);
+		lcd.print(sec);
+	}
+	else
+	{
+		lcd.setCursor(12,0);
+		lcd.print(sec);
+	}
+	
+	
 	//al 2-lea rand
 	lcd.setCursor(0,1); // -- temp setata
 	lcd.print(Parameters_st.TSet);
