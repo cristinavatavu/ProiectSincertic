@@ -29,6 +29,7 @@ float current_temp = 0;
 double Setpoint, Input, Output;
 float tempAvg = 0;
 int tempAvgIndex =0;
+int timeRemaining = -1;
 
 //int current_menu = MENU_MAIN;
 int debounce = 0;
@@ -37,10 +38,16 @@ Parameters_t Parameters_st;
 
 PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
 
-void ManageDebouncing(int, int);  //schimba factorul cu care scad sau cresc parametrii in functie de tempul cat butonul a fost apasat
+void ButtonDebouncingHandler(int, int);  //schimba factorul cu care scad sau cresc parametrii in functie de tempul cat butonul a fost apasat
 								  //in cazul butonului de back timpul de apasare schimba fucntia
 								  //butonul de ok nu are nevoie de debouncing de acest tip si se face printr-o variabila
 void ExecuteFactoryReset();
+void ButtonHandler(float, int); //functia va stabili ce buton a fost apasat atunci cand state-ul e BUTTON_PRESSED.
+//si va apela apoi, dupa un debouncing, functia MenuHandler. Aceasta va gestiona starile
+//adica trecerea dintr-un meniu in altul in functie de butonul apasat
+//functia Menu Handler va apela si rutinele corspunzatoare fiecarei noi stari
+//cand state-ul e BUTTON_RELEASED ea se va ucupa de debouncing-ul corespunzator pt eliberarea butonului
+void SetTimer1();
 
 
 
@@ -73,97 +80,71 @@ void setup() {
 
 
 
+
+
 void loop() {
 	
 	int valoare = analogRead(button);
 	float voltage = valoare * (5.0 / 1023.0);
+	float voltageTemp = 0;
 
-	
-	//TESTARE BUTOANE
-/*
-	lcd.clear();
-	lcd.setCursor(0,0);
-	lcd.print(voltage);*/
-	
 
-	if(voltage<=1) //cand e apasat un buton se citesc maxim 1V, pt orice eventualitate
+//CAND ESTI IN MENIU CITESTE BUTOANELE
+	if(voltage<=1 && current_state != STATE_RUNNING_INC && current_state != STATE_RUNNING_MEN && current_state != STATE_RUNNING_DEC) 
+	//cand e apasat un buton se citesc maxim 1V, pt orice eventualitate
+	//nu mai citi butoanele atunci cand procesul e in rulare pt a reduce interferentele
 	{
-		if(voltage>= 0.06 && voltage<= 0.08) //apasat butonul down
-		{
-			ManageDebouncing(BUTTON_DOWN, BUTTON_PRESSED);
-			
-			if(downCounter%3 == 0)
-			{
-				pressedButton = BUTTON_DOWN;
-				MenuHandler(pressedButton);
-			}
-		}
-		else if(voltage >= 0.20 && voltage <= 0.23) //apasat butonul 2 - up
-		{
-			ManageDebouncing(BUTTON_UP, BUTTON_PRESSED);
-			if(upCounter % 3 == 0)
-			{
-				pressedButton = BUTTON_UP;
-				MenuHandler(pressedButton);
-			}
-		}
-		else if(voltage >= 0.75 && voltage <= 0.79) // apasat butonul 3 - ok
-		{
-			debounce ++;
-			if(debounce == 3)
-			{
-				pressedButton = BUTTON_OK;
-				MenuHandler(pressedButton);
-				debounce = 0;
-			}
-		}
-		else if(voltage >= 0.85 && voltage <= 0.9) //apasat butonul 4 - back sau factory reset
-		{
-			ManageDebouncing(BUTTON_BACK, BUTTON_PRESSED);	
-		}
+		    ButtonHandler(voltage, BUTTON_PRESSED); 
 			delay(100);
 	}
-	else //button released
+	else if (current_state != STATE_RUNNING_INC && current_state != STATE_RUNNING_MEN && current_state != STATE_RUNNING_DEC)//button released
 	{
-		pressedButton = NO_BUTTON_PRESSED;
-		if(downCounter > 0)  //s-a eliberat butonul de down, se face debounce pana cand sa se reseteze counterul
-		{
-			ManageDebouncing(BUTTON_DOWN, BUTTON_RELEASED);
-		}
-		if(upCounter > 0)
-		{
-			ManageDebouncing(BUTTON_UP, BUTTON_RELEASED);
-		}
-		if(backCounter >0)
-		{
-			ManageDebouncing(BUTTON_BACK,BUTTON_RELEASED);
-		}
+			ButtonHandler(voltage, BUTTON_RELEASED);	
 			delay(100);
 	}
 	
 	
-	if(current_menu == MENU_RUNNING)  //citirile de la senzor si transmiterea de PWM se fac doar cand procesul e in rulare
+	
+	//CAND ESTI IN PROCES
+	if(current_state == STATE_RUNNING_INC || current_state == STATE_RUNNING_MEN || current_state == STATE_RUNNING_DEC) 
+	 //citirile de la senzor si transmiterea de PWM se fac doar cand procesul e in rulare
 	{
-		float voltage = (float) analogRead(TEMP_SENSOR_READ_PIN) * (5000.0 / 1023.0); //voltajul in mV de la senzor
+		voltageTemp = (float) analogRead(TEMP_SENSOR_READ_PIN) * (5000.0 / 1023.0); //voltajul in mV de la senzor
 		if(tempAvgIndex < 5) //face media a 5 masuratori
 		{
-			tempAvg += (float) voltage/10.0; //10mV = 1grC
+			tempAvg += (float) voltageTemp/10.0; //10mV = 1grC
 			tempAvgIndex ++;
 		}
 		else
 		{
+			current_temp = (float)tempAvg/(tempAvgIndex+1);
 			tempAvgIndex = 0;
-			current_temp = (float)tempAvg/5.0;
 			tempAvg = 0;
-			DisplayRunningInfo();
+			//DisplayRunningInfo();
 		}
 		//Input = current_temp;
 		//PWMGenerator(Output);
+		
 		PWMGenerator(100);
 		delay(500);
 
-		
-
+		if (timeRemaining == -1)  
+		{
+			timeRemaining = Parameters_st.tInc;   //initializare 
+			SetTimer1();  //porneste timerul de o secunda cu intreruperi
+		}
+	}
+	
+	
+	//PROCES FINALIZAT< REVENIRE LA MENIU
+	if(current_state == STATE_FINAL)
+	{
+		lcd.clear();
+		lcd.setCursor(0,0);
+		lcd.print("Finalizat");
+		delay(3000);
+		current_state = MENU_MAIN;
+		DisplayMainMenu();
 	}
 }
 
@@ -174,7 +155,7 @@ void loop() {
 
 
 
-void ManageDebouncing(int button, int buttonState)
+void ButtonDebouncingHandler(int button, int buttonState)
 {
 	//resetFactor = 0 : button pressed, count the number of presses, if they reached the threshold, change the multiplication factor
 	//resetFactor = 1 : button released, count if it was released for enough time, if yes, reset all the counters and the factor
@@ -278,7 +259,7 @@ void ExecuteFactoryReset()
 	upResetDebouncing = 0;
 	downResetDebouncing= 0;
 	debounce = 0;
-	current_menu = MENU_MAIN;
+	current_state = MENU_MAIN;
 	
 	//reset all process parameters to default values
 	Parameters_st.status = DEFAULT_STATUS;
@@ -287,7 +268,7 @@ void ExecuteFactoryReset()
 	Parameters_st.ki = DEFAULT_KI;
 	Parameters_st.tInc = DEFAULT_TINC;
 	Parameters_st.tMen = DEFAULT_TMEN;
-	Parameters_st.tRec = DEFAULT_TREC;
+	Parameters_st.tDec = DEFAULT_TDEC;
 	Parameters_st.TSet = DEFAULT_TSET;
 	
 	//write the default parameters in eeprom
@@ -300,6 +281,11 @@ void ExecuteFactoryReset()
 	delay(3000);
 	DisplayMainMenu();
 }
+
+
+
+
+
 
 
 
@@ -319,4 +305,130 @@ void PWMGenerator(int dutyCycle)
 	}
 	
 	analogWrite(BULB_PIN_PWM, parameter);
+}
+
+
+
+
+
+
+
+
+
+void ButtonHandler(float voltage, int state)
+{
+	if(state == BUTTON_PRESSED)  //gestionarea apasarii butonului
+	{
+		if(voltage>= 0.06 && voltage<= 0.08) //apasat butonul down
+		{
+			ButtonDebouncingHandler(BUTTON_DOWN, BUTTON_PRESSED);
+			
+			if(downCounter%3 == 0)
+			{
+				pressedButton = BUTTON_DOWN;
+				MenuHandler(pressedButton);
+			}
+		}
+		else if(voltage >= 0.20 && voltage <= 0.23) //apasat butonul 2 - up
+		{
+			ButtonDebouncingHandler(BUTTON_UP, BUTTON_PRESSED);
+			if(upCounter % 3 == 0)
+			{
+				pressedButton = BUTTON_UP;
+				MenuHandler(pressedButton);
+			}
+		}
+		else if(voltage >= 0.75 && voltage <= 0.79) // apasat butonul 3 - ok
+		{
+			debounce ++;
+			if(debounce == 3)
+			{
+				pressedButton = BUTTON_OK;
+				MenuHandler(pressedButton);
+				debounce = 0;
+			}
+		}
+		else if(voltage >= 0.85 && voltage <= 0.9) //apasat butonul 4 - back sau factory reset
+		{
+			ButtonDebouncingHandler(BUTTON_BACK, BUTTON_PRESSED);
+		}
+	}
+	else if (state == BUTTON_RELEASED)  //gestionarea eliberarii butonului
+	{
+		pressedButton = NO_BUTTON_PRESSED;
+		if(downCounter > 0)  //s-a eliberat butonul de down, se face debounce pana cand sa se reseteze counterul
+		{
+			ButtonDebouncingHandler(BUTTON_DOWN, BUTTON_RELEASED);
+		}
+		if(upCounter > 0)
+		{
+			ButtonDebouncingHandler(BUTTON_UP, BUTTON_RELEASED);
+		}
+		if(backCounter >0)
+		{
+			ButtonDebouncingHandler(BUTTON_BACK,BUTTON_RELEASED);
+		}
+	}	
+}
+
+
+void SetTimer1()
+{
+	cli();//stop interrupts
+	
+	//set timer1 interrupt at 1Hz
+	TCCR1A = 0;// set entire TCCR1A register to 0
+	TCCR1B = 0;// same for TCCR1B
+	TCNT1  = 0;//initialize counter value to 0
+	// set compare match register for 1hz increments
+	OCR1A = 15624;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+	// turn on CTC mode
+	TCCR1B |= (1 << WGM12);
+	// Set CS10 and CS12 bits for 1024 prescaler
+	TCCR1B |= (1 << CS12) | (1 << CS10);
+	// enable timer compare interrupt
+	TIMSK1 |= (1 << OCIE1A);
+	
+	sei();//allow interrupts
+}
+
+
+
+
+
+
+ISR(TIMER1_COMPA_vect){ 
+	//interrupt commands here
+	if(timeRemaining - 1 >=0)
+		timeRemaining --; //a mai trecut o secunda
+		
+	if(timeRemaining == 0) //a expirat timpul
+	{
+		switch(current_state)
+		{
+			case STATE_RUNNING_INC:  //s-a terminat etapade incalzire, treci la mentinere
+			{
+				current_state = STATE_RUNNING_MEN;
+				timeRemaining = Parameters_st.tMen;
+			}
+			break;
+			
+			case STATE_RUNNING_MEN: //s-a terminat etapa de mentinere, treci la etapa de racire
+			{
+				current_state = STATE_RUNNING_DEC;
+				timeRemaining = Parameters_st.tDec;
+			}
+			break;
+			
+			case STATE_RUNNING_DEC: //s-a incheiat procesul de racure, proces incheiat
+			{
+				current_state = STATE_FINAL; //se va reveni la prog princ
+				Parameters_st.status = 5; //proces finalizat
+				EEPROM_writeAnything(ADDR_STATUS, Parameters_st.status);
+				TIMSK1 = 0; //dezactiveaza timerul
+			}
+			break;
+		}
+	}
+	DisplayRunningInfo();
 }
