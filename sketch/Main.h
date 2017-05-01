@@ -25,7 +25,7 @@
 #define DEFAULT_KP 1.2f
 #define DEFAULT_TINC 300
 #define DEFAULT_TMEN 300
-#define DEFAULT_TREC 300
+#define DEFAULT_TDEC 300
 #define DEFAULT_TSET 30
 
 #define BUTTON_PRESSED 0
@@ -34,7 +34,7 @@
 #define FACTOR10_THRESH 30
 #define FACTOR100_THRESH 60
 
-#define BULB_PIN_PWM 10
+#define BULB_PIN_PWM 6 //pentru ca daca il setez pe 9 sau 10 va folosi timerul 1
 #define TEMP_SENSOR_READ_PIN A5
 #define BUTTON_READ_PIN A0
 
@@ -51,7 +51,7 @@ typedef struct Parameters_t
 		float kp;
 		int tInc; //timpul de incalzire - in secunde
 		int tMen; //timpul de mentinere - in secunde
-		int tRec; //timpul de descrestere atemp - in secunde
+		int tDec; //timpul de descrestere atemp - in secunde
 		int TSet; //temp setata de mentinere - in grade celsius
 };
 
@@ -65,6 +65,7 @@ extern int upFactor;
 extern int downFactor;
 void PWMGenerator(int);
 extern float current_temp;
+extern int timeRemaining;
 
 #endif /* DEFINES_H_ */
 
